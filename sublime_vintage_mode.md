@@ -50,24 +50,26 @@ Back to where we started - you may be wondering how <kbd>k</kbd> can be <kbd>&ua
 
 In Sublime, you can see what mode you're in by looking in the bottom left corner of the Sublime Graphical User Interface (GUI). Use <kbd>i</kbd> to enter `INSERT MODE` and <kbd>Esc</kbd> to go back to `COMMAND MODE`.
 
-
-If I were to learn only 10 commands to improve
 ##<a name="gsgs"></a>Top 10 Commands
+
+If I were to learn only 10 commands to get started, I would choose 10 of these ... 14.
+
+
 Keys    | Command
 ---     | ---
 <kbd>j</kbd>     | Move down one line
 <kbd>k</kbd>     | Move up one line
 <kbd>l</kbd>     | Move right one column (<kbd>l</kbd> = "ell")
 <kbd>h</kbd>     | Move left one column
-<kbd>i</kbd>     | Enter insert mode (i is for insert)
-<kbd>Esc</kbd>   | Enter command mode
+<kbd>i</kbd>     | Enter Insert mode (i is for insert)
+<kbd>Esc</kbd>   | Enter command mode (exiting Insert mode)
 <kbd>d</kbd><kbd>d</kbd>    | Delete current line (d is for delete)
 <kbd>y</kbd><kbd>y</kbd>    | Copy current line (y is for yank)
 <kbd>p</kbd>     | Paste (p is for paste)
 <kbd>u</kbd>     | Undo (u is for undo)
 <kbd>I</kbd>     | Enter insert mode at start of current line (I is for append)
 <kbd>A</kbd>     | Enter insert mode at end of current line (A is for append)
-<kbd>C</kbd>     | Delete to the end of the line and enter insert mode. (Note, that's <kbd>shift</kbd>+<kbd>c</kbd>)
+<kbd>C</kbd>     | Delete to the end of the line and enter insert mode (Note, that's <kbd>shift</kbd>+<kbd>c</kbd>)
 <kbd>v</kbd><kbd>i</kbd><kbd>b</kbd>   | Highlight everything within current `()`
 
 If you want more of an introduction, you can explore the following links:
@@ -84,9 +86,11 @@ To provide more historical context, [Vim] is a text editor that implements vi (i
 [This tutorial]:https://blog.interlinked.org/tutorials/vim_tutorial.html
 
 #<a name="vc"></a>Vi Commands for Sublime
+
 Sublime's Vintage mode is an implementation of vi, but is not vi. Again, vi is a standard for executing commands in a text editor, and Sublime implements that standard. That being said, many of the basic vi commands for editing text are available. (The vi commands that largely aren't available include using the <kbd>:</kbd> key, or <kbd>ctrl</kbd>, because Sublime's hotkeys override them.) The following list are commands that work in Sublime's Vintage mode.
 
 ##<a name="vcma"></a>Moving Around
+
 Keys    | Command
 ---     | ---
 `j`     | Move down one line
@@ -119,6 +123,7 @@ Keys    | Command
 `,`     | Moves to previous `.` in line (`,` = comma)
 
 ##<a name="vccp"></a>Copy and Paste
+
 Keys    | Command
 ---     | ---
 `yw`    | Copy (yank) characters from current position to start of next word
@@ -144,6 +149,7 @@ Pro tips:
 
 
 ##<a name="vced"></a>Editing
+
 Keys    | Command
 ---     | ---
 `i`		| Insert mode before text
@@ -190,6 +196,7 @@ Keys    | Command
 `#=j`   | Update indentation of this and `#` lines below to match indentation of line above (works like `d` key)
 
 Protips:
+
 * Anytime you delete something, either using x, dd, cw, etc., it's really just a "cut". So you can always paste what you just deleted using "p".
     - If you yank something, and then highlight and replace something else, it’ll copy the word you just overwrote. So anytime you paste over something, and it deletes that something, whatever you delete will be stored in the register (which isn’t the clipboard). The key is, anytime you delete something it gets stored in the register
     - Protip: use ctrl+d to highlight multiple words and p to paste over all of them. But note, now whatever you highlighted using ctrl+d will be in your register
@@ -199,6 +206,7 @@ Protips:
 
 
 ##<a name="vcv"></a>Visual
+
 Terminology: a “block” is a section of selected/highlighted text. "Visual" is the vi term for "Select". A "visual block" is a group of selected/highlighted text.
 
 Keys    | Command
@@ -249,6 +257,7 @@ Keys    | Command
 Note: `g` is a "motion" command. g~: This changes the case of whatever      text-motion comes next. iw is the text motion for "inner-word", so g~iw changes the case of what Vim defines as a word (pretty much what English defines as a word). `g` is limited in Sublime Vintage Mode, but has a lot of power in Vim.
 
 ##<a name="vcss"></a>Search and Screen
+
 Keys    | Command
 ---     | ---
 `/`     | Search forward. Hit <kbd>Enter</kbd> to find. (similar `ctrl+f`, except `/` always is empty. `ctrl+f` can contain what's presently selected.)
@@ -271,6 +280,7 @@ Keys    | Command
 * Also, <kbd>Alt</kbd>+<kbd>F3</kbd> works as a good addition for <kbd>Ctrl</kbd>+<kbd>d</kbd>. Where <kbd>Ctrl</kbd>+<kbd>d</kbd> highlights one by one, <kbd>Alt</kbd>+<kbd>F3</kbd> highlights all at once.
 
 ##<a name="vcm"></a>Marking (Bookmarking)
+
 To set a "real" bookmark in Sublime, use <kbd>Ctrl</kbd>+<kbd>F2</kbd>. This will leave a white arrow on the line number you bookmarked. Alternatively, you can use Vintage mode to mark the line (and cursor position). However, you will not see a white arrow when using Vintage mode marks. FYI, bookmarks only last as long as the file is open. They're useful if you go between two chunks of code repeatedly. Or, they're useful if you want to leave but come right back.
 
 Keys    | Command
@@ -281,6 +291,7 @@ Keys    | Command
 * Note, if you have `StataEditor` as your Stata Package for Sublime, you'll notice that <kbd>\`</kbd> creates <kbd>\`'</kbd> by default. This `StataEditor` feature is useful for making locals. But if you want to override the <kbd>\`'</kbd> Sublime command, you'll have to install `VintageES`.
 
 ##<a name="vcmacros"></a>Macros
+
 Vintage mode allows you to record macros. While recording, the macro will track your every move, even in and out of command mode. Any macros will then be stored as long as Sublime is open. You can close the current file, and your macros will still be there. Sublime lets you record macros using <kbd>ctrl</kbd>+<kbd>q</kbd>, but it will only let you record macros one at a time. Vintage mode lets you name your macros.
 
 Keys    | Command
@@ -290,6 +301,7 @@ Keys    | Command
 `@x`    | Run macro `x`
 
 ##<a name="vcregisters"></a>Registers
+
 Every time you press <kbd>Ctrl</kbd><kbd>c</kbd> on your Windows machine, data is stored in the Windows clipboard. If you highlight new text and press <kbd>Ctrl</kbd><kbd>c</kbd> again, however, the old copied text is deleted and replaced with the newly copied text.
 
 What if you could copy two things at once? That way, you can paste two different things at once. Well, vi allows for this. [Registers] are vi's clipboard.  You can access a register using `"a` where `a` is any letter. For example, to store highlighted text in register `a`, type `"ay`. Then highlight additional text and type `"by` to store newly copied text in register `b`. You'll noticed that if you type `p`, the stuff from `a` nor `b` will come out.
@@ -313,6 +325,7 @@ Keys    | Command
 
 #<a name="ad"></a>Advanced
 ##<a name="adfc"></a>Frequently used combos
+
 Keys    | Command
 ---     | ---
 `vgg`   | Select to start of script (useful when sending to Stata)
@@ -323,10 +336,12 @@ Keys    | Command
 `#n`    | Put the word currently under cursor and use `n` or `N` to find other instances of that word
 
 ##<a name="adp"></a>Protips
+
 * Beware of <kbd>Caps Lock</kbd>. It messes up all of your keystrokes when in `Command Mode`.
 * To surround "something" in "quotes", enter visual mode and highlight the selection, hit shift "", and then hit any arrow key <kbd>&larr;</kbd> key. Note, this functionality may be native to Sublime, but Sublime Vintage mode disables it, as `""` is a command within `visual` mode. The arrow keys are not part of vi, and so that allows you to execute the code. Or, just go into `INSERT MODE` and the functionality will work.
 
 ##<a name="adcg"></a>Command groupings
+
 * Commands that behave similarly:
     - <kbd>v</kbd>, <kbd>d</kbd>, <kbd>c</kbd>, <kbd>y</kbd>, <kbd>></kbd>, <kbd><</kbd>, <kbd>=</kbd>
     - Use same keystrokes
@@ -346,6 +361,7 @@ Here's a helpful cheat sheet from [viemu.com](http://www.viemu.com/vi-vim-cheat-
  -->
 
 ##<a name="adpackages"></a>Sublime Vi Packages
+
 * VintageES
     - Downfalls:
         + The goto line command, "20G" won't work if you have a "0" in the number. For example, 21G will take you to line 21. But 20G will just take you to the bottom. 94G will take you to line 94. 90G to the bottom. This means you can't go to any line such as 100-109, but you can go to 111.
