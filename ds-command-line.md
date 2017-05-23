@@ -10,10 +10,10 @@ A set of random terminal commands I'm recording while learning the terminal. I i
 
 | heading | command | .bashrc
 |---|---|---
-| Create `.gitignore` after `git init` (to only track a specific folder) | `echo \!scripts/* >> .gitignore` |
-| Set up analysis | `mkdir data scripts results` | `alias mkdsd="mkdir data scripts results"`
-| Change directory and list files | `cd path/ && ls` | `cdls() {cd "$@" && ls;}`
-| List directories in a folder | | `alias lsd="ls -l | grep '^d'"`
+| Set up analysis | `mkdir data scripts results` | `alias mkdsd="mkdir data scripts results"` |
+| Create `.gitignore` after `git init` (to only track a specific folder) | `echo \!scripts/* >> .gitignore` | |
+| Change directory and list files | `cd path/ && ls` | `cdls() {cd "$@" && ls;}` |
+| List directories in a folder | | `alias lsd="ls -l | grep '^d'"` |
 
 
 
