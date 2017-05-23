@@ -15,7 +15,7 @@ A set of random terminal commands I'm recording while learning the terminal. I i
 | Change directory and list files | `cd path/ && ls` | `cdls() {cd "$@" && ls;}`
 | List directories in a folder | | `alias lsd="ls -l \| grep '^d'"` [^1]
 
-[^1]: Slash `\` is for GitHub markdown, and is not included in code
+[^1]: Slash `\` is for GitHub markdown, and is not included in code (only seen in raw document)
 
 # Other helpful resources:
 
