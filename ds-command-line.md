@@ -4,13 +4,13 @@ A set of random terminal commands I'm recording while learning the terminal. I i
 ## Data
 | heading | command | .bashrc
 |---|---|---
-| Preview contents of `.csv` | `head -n 10 path/to/file.csv` | 
+| Preview contents of `.csv` | `head -n 10 path/to/file.csv` |
 
 ## Git / Folder management
 
 | heading | command | .bashrc
 |---|---|---
-| Create `.gitignore` after `git init` (to only track a specific folder) | `echo !scripts/* >> .gitignore` |
+| Create `.gitignore` after `git init` (to only track a specific folder) | `echo \!scripts/* >> .gitignore` |
 | Set up analysis | `mkdir data scripts results` | `alias mkdsd="mkdir data scripts results"`
 | Change directory and list files | `cd path/ && ls` | `cdls() {cd "$@" && ls;}`
 | List directories in a folder | | `alias lsd="ls -l | grep '^d'"`
