@@ -35,8 +35,7 @@ df %<>%
 df %<>% filter(!(proj %in% c("eofd", "done")))
 
 # SUMMARY STATS --------------------------------------------
-# Total:
-# Today:
+# Today: Get total time by project, and combine all the descriptions
 cat("\nTime by project today:\n")
 df %>% filter(date == Sys.Date()) %>%
   group_by(proj) %>%
@@ -46,14 +45,15 @@ df %>% filter(date == Sys.Date()) %>%
   rename(Project = proj) %>%
   as.data.frame() %>%
   print()
-  
+
+# Current task  
 curr <- df %>% ungroup() %>%
   filter(date == Sys.Date()) %>%
   filter(entry == n()) %>%
-  select(tot_min) %>%
-  as.matrix()
+  select(tot_min, desc) %>%
+  as.data.frame()
 
-cat("\nTime on current task: ", curr, " min\n")
+cat("\nTime on ", curr$desc, ": ", curr$tot_min, " min\n")
 
 
 
