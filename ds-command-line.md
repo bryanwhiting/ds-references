@@ -2,9 +2,16 @@
 A set of random terminal commands I'm recording while learning the terminal. I include the the `.bashrc` alias or function if I use it.
 
 ## Data
+
 | heading | command | .bashrc
 |---|---|---
 | Preview contents of `.csv` | `head -n 10 path/to/file.csv` |
+
+## Productivity
+
+| heading | command | .bashrc
+|---|---|---
+| Prepend a todo note to my todo file | | todo() { echo -e "☐ $@\n$(cat ~/my.todo)" > ~/my.todo;}
 
 ## Git / Folder management
 
