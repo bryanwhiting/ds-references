@@ -26,21 +26,28 @@ df %<>% group_by(date) %>%
   mutate(difftime = ifelse(entry == n() & date == Sys.Date(), (now - dt)*60, difftime)) 
 
 # Compute total times
+format_seconds <- function(s) {
+  hr <- floor(s / (60*60))
+  mn <- floor(s / 60) %% 60
+  sec <-round(s %% 60)
+  paste(hr, mn, sec, sep = ":")
+}
+
 df %<>%
   mutate(tot_min = round(difftime / 60, 2)) %>%
-  mutate(tot_hr = round(tot_min / 60, 2))
-  
+  mutate(tot_hr = round(tot_min / 60, 2)) %>%
+  mutate(time = format_seconds(difftime))
 
 # Remove lines with "eofd" or "done" 
 df %<>% filter(!(proj %in% c("eofd", "done")))
 
 # SUMMARY STATS --------------------------------------------
-# Today: Get total time by project, and combine all the descriptions
+# Today: Get total time by project, and combine all the times
 cat("\nTime by project today:\n")
 df %>% filter(date == Sys.Date()) %>%
   group_by(proj) %>%
-  summarize(`By min` = sum(tot_min),
-            `By hr` = sum(tot_hr),
+  summarize(time = format_seconds(sum(difftime)),
+            `(hrs)` = sum(tot_hr),
             desc = toString(desc)) %>%
   rename(Project = proj) %>%
   as.data.frame() %>%
@@ -53,7 +60,7 @@ curr <- df %>% ungroup() %>%
   select(tot_min, desc) %>%
   as.data.frame()
 
-cat("\nTime on ", curr$desc, ": ", curr$tot_min, " min\n")
+cat("\nTime on task |", curr$desc, "| is ", curr$tot_min, " min\n")
 
 
 

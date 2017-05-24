@@ -16,7 +16,7 @@ cdls() { cd "$@" && ls; }
 td() { echo -e "☐ $@\n$(cat ~/my.todo)" > ~/my.todo;}
 tdn() { echo -e "☐ NAB: $@\n$(cat ~/my.todo)" > ~/my.todo;}
 
-tent() { echo -e "TIME: $(date +%Y%m%d-%H%M%S) | PROJ: $1 | DESC: ${@:2:999}\n$(cat ~/timesheet.txt)" > ~/timesheet.txt;}
+tent() { echo -e "TIME: $(date +%Y-%m-%d_%H:%M:%S) | PROJ: $1 | DESC: ${@:2:999}\n$(cat ~/timesheet.txt)" > ~/timesheet.txt;}
 gettime() { RScript.exe "/h/github/ds-references/rscripts/time-entry.R";}
 
 # Full recursive directory listing
