@@ -23,7 +23,7 @@ df %<>% group_by(date) %>%
 now <- ymd_hms(Sys.time(), tz = "America/New_York")
 df %<>% group_by(date) %>% 
   # Multiply by 60 because it calculates differences in minutes
-  mutate(difftime = ifelse(entry == n() & date == Sys.Date(), (now - dt)*60, difftime)) 
+  mutate(difftime = ifelse(entry == n() & date == Sys.Date(), difftime(now, dt, tz = "America/New_York", units = "secs"), difftime)) 
 
 # Compute total times
 format_seconds <- function(s) {
@@ -34,6 +34,7 @@ format_seconds <- function(s) {
 }
 
 df %<>%
+  mutate(tot_sec = round(difftime, 2)) %>%
   mutate(tot_min = round(difftime / 60, 2)) %>%
   mutate(tot_hr = round(tot_min / 60, 2)) %>%
   mutate(time = format_seconds(difftime))
@@ -44,23 +45,29 @@ df %<>% filter(!(proj %in% c("eofd", "done")))
 # SUMMARY STATS --------------------------------------------
 # Today: Get total time by project, and combine all the times
 cat("\nTime by project today:\n")
-df %>% filter(date == Sys.Date()) %>%
+today <- df %>% filter(date == Sys.Date()) %>%
   group_by(proj) %>%
   summarize(time = format_seconds(sum(difftime)),
-            `(hrs)` = sum(tot_hr),
+            hrs = sum(tot_hr),
             desc = toString(desc)) %>%
   rename(Project = proj) %>%
-  as.data.frame() %>%
-  print()
+  as.data.frame()
+
+tot <- today %>% summarize(Project = "TOTAL:", desc = "",
+                           time = sum(hrs)*(3600),
+                           hrs = sum(hrs))
+tot$time %<>% format_seconds
+# Print total and today
+rbind(today, tot)
 
 # Current task  
 curr <- df %>% ungroup() %>%
   filter(date == Sys.Date()) %>%
   filter(entry == n()) %>%
-  select(tot_min, desc) %>%
+  select(tot_sec, desc) %>%
   as.data.frame()
 
-cat("\nTime on task |", curr$desc, "| is ", curr$tot_min, " min\n")
+cat("\nTime on task |", curr$desc, "| is ", format_seconds(curr$tot_sec), "\n")
 
 
 
