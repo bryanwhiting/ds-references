@@ -1,9 +1,8 @@
+
 # PATH ------------------------------------------------------------
-# FIXME ONLY RUN ON WINDOWS
-# TODO ONLY RUN ON WINDOWS
-export PATH=$PATH:/c/Program\ Files/Rstudio/bin/
-export PATH=$PATH:/c/Users/bwhiting/Documents/R/R-3.3.3/bin/
-export PATH=$PATH:/c/Program\ Files\ \(x86\)/Google/Chrome/Application
+# export PATH=$PATH:/c/Program\ Files/Rstudio/bin/
+# export PATH=$PATH:/c/Users/bwhiting/Documents/R/R-3.3.3/bin/
+# export PATH=$PATH:/usr/bin/.../Google/Chrome/Application
 
 # ALIAS ------------------------------------------------------------
 # Helpful urls
@@ -61,11 +60,14 @@ td() { echo -e "☐ $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my
 tdn() { echo -e "☐ @NAB: $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my.todo;}
 
 t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/timesheet.txt)" > ~/timesheet.txt;}
+te() { atom ~/timesheet.txt;}
 gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
 
 # Add a note
-nt() { echo -e "$(date +%Y-%m-%d) | ${@:1:999}\n$(cat ~/notes.md)" > ~/notes.md;}
-
+n() { echo -e "$(date +%Y-%m-%d) | ${@:1:999}\n$(cat ~/notes.md)" > ~/notes.md;}
+# FUTURE: have raw-notes.md and notes.md, where notes.md is a compiled version of raw-notes.md (Think it converts the raw-notes data into a beautiful md file)
+# FUTURE: a version of head -n 10 ~/notes.md, but strip out date
+# Create some search feature of notes. Search for all Q?
 
 # Open an Excel file from the command line
 excel() { "C:\Program Files (x86)\Microsoft Office\Office16\EXCEL.EXE" "$@";}

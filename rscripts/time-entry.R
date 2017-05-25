@@ -55,7 +55,7 @@ df %<>% filter(!(proj %in% c("eofd", "done"))) %>% arrange(desc(dt))
 # SUMMARY STATS --------------------------------------------
 # Today: Get total time by project, and combine all the times
 
-summarize_day <- function(day = Sys.Date()){
+summarize_day <- function(day = Sys.Date(), output = "neat"){
   # FIXME: option to summarize by task in project?
   
   # Unique descriptions by project  
@@ -71,20 +71,57 @@ summarize_day <- function(day = Sys.Date()){
     summarize(time = format_seconds(sum(difftime)),
               hrs = sum(tot_hr))
   
+  # Join description on, rename, and save out. Trim the desc if necessary
   summ_day <- left_join(summ_day, unique_desc, by = "proj") %>%
-    rename(Project = proj) %>%
-    # Trim the desc if necessary
     mutate(desc = ifelse(nchar(desc) > 150, paste(substr(desc, 1, 150), "..."), desc)) %>%
     arrange(hrs)
   
-  # Calculate totals and format
-  tot <- summ_day %>% summarize(Project = "TOTAL:", desc = "",
+  # Calculate totals and format. Append totals on.
+  tot <- summ_day %>% summarize(proj = "TOTAL:", desc = "",
                              time = format_seconds(sum(hrs)*3600),
                              hrs = sum(hrs))
   summ_day <- rbind(summ_day, tot)
   
-  cat("\n", format(day, format = "%a %B %d, %Y"))
-  summ_day %>% knitr::kable(align = 'lccl')
+  fmt_day <-  format(day, format = "%a %B %d, %Y")
+  # Print out 
+  if (output == "neat") {
+    
+    cat("\n", fmt_day)
+    summ_day %>% knitr::kable(align = 'lccl')
+    
+  } else if (output == "simple") {
+    # Kable doesn't work for some reason when printing out multiple times
+    
+    
+    cat("\n", format(day, format = "%a %B %d, %Y"), "\n")
+    
+    summ_day %>% select(-desc) %>% as.data.frame() %>% print(row.names = F)
+    
+  }
+}
+
+
+
+summarize_block <- function(ndays = 6) {
+  
+  last_week <- Sys.Date() - ndays
+  
+  week <- df %>% filter(date >= last_week) %>%
+    group_by(proj) %>%
+    summarize(time = format_seconds(sum(difftime)),
+              hrs = sum(tot_hr, na.rm = T)) %>%
+    arrange(desc(hrs))
+  
+  tot <- week %>% summarize(proj = "TOTAL:",
+                             time = format_seconds(sum(hrs)*3600),
+                             hrs = sum(hrs))
+  out <- rbind(week, tot)
+  
+  cat("\nLast ", ndays, " days \n")
+  cat("\nFrom ", format(last_week, format = "%a %b %d, %Y"))
+  cat("\nTo   ", format(Sys.Date(), format = "%a %b %d, %Y"))
+  out %>% knitr::kable(align = 'lcr')
+  
 }
 
 # Current task  
@@ -107,6 +144,15 @@ if ("y" %in% args) {
 if ("y2" %in% args) {
   # sapply(Sys.Date() - 1:2, summarize_day)
   summarize_day(Sys.Date() - 2)
+}
+if ("w" %in% args) {
+  if ("a" %in% args) {
+    lapply(Sys.Date() - 6:1, function(i) summarize_day(i, output = "simple"))
+  }
+  summarize_block(6)
+}
+if ("m" %in% args) {
+  summarize_block(30)
 }
 
 options(warn = 0)
