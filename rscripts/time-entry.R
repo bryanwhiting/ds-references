@@ -1,6 +1,7 @@
 # Command line arguments (used in weeks)
 args <- commandArgs(trailingOnly = TRUE)
 
+# PROCESS DATA --------------------------------------------
 # options(echo = FALSE) # Set to true to see the code
 options(warn = -1)
 
@@ -63,7 +64,6 @@ summarize_day <- function(day = Sys.Date()){
     unique() %>%
     summarize(desc = toString(desc))
   
-  
   # Filter today's data, group, and summarize
   summ_day <- df %>% filter(date == day) %>%
     group_by(proj) %>%
@@ -93,8 +93,6 @@ curr <- df %>% ungroup() %>%
   select(tot_sec, desc) %>%
   as.data.frame()
 
-
-
 # PRINT RESULTS --------------------------------
 # IDEA: Include a weekly summary for number of days
 # IDEA: Get total sums by project for N amount of time
@@ -109,7 +107,5 @@ if ("y2" %in% args) {
   # sapply(Sys.Date() - 1:2, summarize_day)
   summarize_day(Sys.Date() - 2)
 }
-
-
 
 options(warn = 0)
