@@ -48,7 +48,7 @@ function search (){
 
 # Make directory, and go into it
 mcd () {
-    # -p will 
+    # -p will
     mkdir -p $1
     cd $1
 }
@@ -60,8 +60,8 @@ cdl() { cd "$@" && ls; }
 td() { echo -e "☐ $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my.todo;}
 tdn() { echo -e "☐ @NAB: $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my.todo;}
 
-t() { echo -e "TIME: $(date +%Y-%m-%d_%H:%M:%S) | PROJ: $1 | DESC: ${@:2:999}\n$(cat ~/timesheet.txt)" > ~/timesheet.txt;}
-gt() { RScript.exe "/h/github/ds-references/rscripts/time-entry.R";}
+t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/timesheet.txt)" > ~/timesheet.txt;}
+gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
 
 # Add a note
 nt() { echo -e "$(date +%Y-%m-%d) | ${@:1:999}\n$(cat ~/notes.md)" > ~/notes.md;}
