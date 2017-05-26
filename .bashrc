@@ -59,9 +59,10 @@ cdl() { cd "$@" && ls; }
 td() { echo -e "☐ $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my.todo;}
 tdn() { echo -e "☐ @NAB: $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my.todo;}
 
-t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/timesheet.txt)" > ~/timesheet.txt;}
-te() { atom ~/timesheet.txt;}
-gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
+t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;}
+te() { atom ~/.timesheet/timesheet.txt;}
+#gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
+gt() { RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;}
 
 # Add a note
 n() { echo -e "$(date +%Y-%m-%d) | ${@:1:999}\n$(cat ~/notes.md)" > ~/notes.md;}

@@ -10,7 +10,7 @@ suppressMessages(library(dplyr))
 suppressMessages(library(magrittr))
 suppressMessages(library(lubridate))
 # FIXME: How do you read in quotes?
-df <- read.table("H:/timesheet.txt", sep = "|", quote = "\"", as.is = T)
+df <- read.table("~/.timesheet/timesheet.txt", sep = "|", quote = "\"", as.is = T)
 colnames(df) <- c("time", "proj", "desc")
 df$time %<>% gsub("TIME: ", "", ., fixed = T) %>% trimws()
 df$proj %<>% gsub("PROJ: ", "", ., fixed = T) %>% trimws()
