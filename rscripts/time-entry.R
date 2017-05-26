@@ -20,14 +20,17 @@ options(stringsAsFactors=FALSE)
 
 # FIXME: set path in ~/.timesheet_config
 if (grep("Windows", sessionInfo()) > 0) {
+  system = "Windows"
   path = "H:/.timesheet/timesheet.txt"
 } else {
+  system = "Else"
   path = "~/.timesheet/timesheet.txt"
 }
 
 suppressMessages(library(dplyr))
 suppressMessages(library(magrittr))
 suppressMessages(library(lubridate))
+suppressMessages(library(ggplot2))
 # FIXME: How do you read in quotes?
 df <- read.table(path, sep = "|", quote = "\"", as.is = T)
 colnames(df) <- c("time", "proj", "desc")
@@ -72,11 +75,8 @@ if ("curr_only" %in% args) {
 df %<>% filter(!(proj %in% c("eofd", "done"))) %>% arrange(desc(dt))
 
 # SUMMARY STATS --------------------------------------------
-
-
-
 # Today: Get total time by project, and combine all the times
-summarize_day <- function(day = Sys.Date(), output = "neat"){
+summarize_day <- function(day = Sys.Date(), output = "neat", mk_plot = FALSE){
   # FIXME: option to summarize by task in project?
   
   # Unique descriptions by project  
@@ -92,6 +92,7 @@ summarize_day <- function(day = Sys.Date(), output = "neat"){
     summarize(time = format_seconds(sum(tot_sec)),
               hrs = sum(tot_sec/3600))
   
+  
   # Join description on, rename, and save out. Trim the desc if necessary
   summ_day <- left_join(summ_day, unique_desc, by = "proj") %>%
     mutate(desc = ifelse(nchar(desc) > 150, paste(substr(desc, 1, 150), "..."), desc)) %>%
@@ -100,14 +101,33 @@ summarize_day <- function(day = Sys.Date(), output = "neat"){
   # Calculate totals and format. Append totals on.
   tot <- df %>% filter(date == day) %>% 
     ungroup() %>%
-    summarize(proj = "TOTAL:", desc = "",
+    summarize(proj = "Total ",
               time = format_seconds(sum(tot_sec)),
-              hrs = sum(tot_sec/3600)) 
+              hrs = sprintf("%2.2f", sum(tot_sec/3600)),
+              desc = "Description") 
+  
   # Combine into one
-  out <- rbind(summ_day, tot)
+  # out <- rbind(summ_day, tot)
+  # Instead of having a 
+  out <- summ_day
   out$hrs %<>% sprintf("%2.2f", .)
   
+  colnames(out) <- tot
+  
   fmt_day <-  format(day, format = "%a %B %d, %Y")
+  
+  # OUTPUT ---------- 
+  # FIXME: Consider including a plot?
+  # if (mk_plot == TRUE) {
+  #   cat("Plot made")
+  #   ggplot(out, aes(x = proj, y = hrs, fill = proj)) + geom_bar(stat = "identity")
+  #   if (system == "Windows") {
+  #     ggsave("H:/.timesheet/dayplot.png")
+  #   } else {
+  #     ggsave("~/.timesheet/dayplot.png")
+  #   }
+  # }
+  
   # Print out 
   if (output == "neat") {
     
@@ -118,9 +138,14 @@ summarize_day <- function(day = Sys.Date(), output = "neat"){
     # Kable doesn't work for some reason when printing out multiple times
     
     cat("\n", format(day, format = "%a %B %d, %Y"), "\n")
-    out %>% select(-desc) %>% as.data.frame() %>% print(row.names = F)
-    
+    # Only print if ther'es more than just the summary row.
+    if (nrow(out) > 1) {
+      out %>% select(-desc) %>% as.data.frame() %>% print(row.names = F)
+    } else {
+      cat("-----\n")
+    }
   }
+  
 }
 
 

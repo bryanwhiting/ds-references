@@ -35,6 +35,7 @@ goog(){
   flag=$1;
   [[ $1 = ${1#-} ]] && unset $flag || shift;
   concat=$(printf '%s+' ${@});
+  # FIXME: Windows only
   chrome.exe www.google.com/\#q=${concat%+};
 }
 
@@ -45,7 +46,7 @@ function search (){
   egrep -rniI $1 . | sort | uniq
 }
 function searcho (){
-  #o for only the phrase found
+  #o for only the phrase found (useful for seeing which tags in journal have been made)
   egrep -rnoI $1 . | sort | uniq
 }
 
