@@ -4,18 +4,28 @@ args <- commandArgs(trailingOnly = TRUE)
 # PROCESS DATA --------------------------------------------
 # options(echo = FALSE) # Set to true to see the code
 options(warn = -1)
+options(stringsAsFactors=FALSE)
 
+# FIXME: set path in ~/.timesheet_config
+if (grep("Windows", sessionInfo()) > 0) {
+  path = "H:/.timesheet/timesheet.txt"
+} else {
+  path = "~/.timesheet/timesheet.txt"
+}
 
 suppressMessages(library(dplyr))
 suppressMessages(library(magrittr))
 suppressMessages(library(lubridate))
 # FIXME: How do you read in quotes?
-df <- read.table("~/.timesheet/timesheet.txt", sep = "|", quote = "\"", as.is = T)
+df <- read.table(path, sep = "|", quote = "\"", as.is = T)
 colnames(df) <- c("time", "proj", "desc")
-df$time %<>% gsub("TIME: ", "", ., fixed = T) %>% trimws()
-df$proj %<>% gsub("PROJ: ", "", ., fixed = T) %>% trimws()
-df$desc %<>% gsub("DESC: ", "", ., fixed = T) %>% trimws()
+df <- sapply(df, trimws)
 
+# Get current time and add it on
+now_row = as.data.frame(list(time = as.character(Sys.time()), proj = "now", desc = ""))
+df <- rbind(now_row, df)
+
+# Convert time
 df %<>% mutate(dt = ymd_hms(time, tz = "America/New_York"),
                date = date(dt)) %>% arrange(dt)
 
@@ -23,15 +33,28 @@ df %<>% mutate(dt = ymd_hms(time, tz = "America/New_York"),
 df %<>% group_by(date) %>%
   mutate(lead_dt = lead(dt), 
          entry = seq_along(time)) %>%
-  mutate(difftime = difftime(lead_dt, dt, units = "secs"))
+  mutate(difftime = difftime(lead_dt, dt, units = "secs")) %>%
+  mutate(tot_sec = as.numeric(difftime, units = "secs")) %>%
+  arrange(desc(dt))
 
-# Replace the last entry with the current time (to show how long since last)
-now <- ymd_hms(Sys.time(), tz = "America/New_York")
-df %<>% group_by(date) %>% 
-  # Multiply by 60 because it calculates differences in minutes
-  mutate(difftime = ifelse(entry == n() & date == Sys.Date(), difftime(now, dt, tz = "America/New_York", units = "secs"), difftime)) 
+# Remove lines with "now"
+df %<>% filter(proj != "now") %>% arrange(desc(dt))
 
-# Compute total times
+# Current task  
+curr <- df %>% ungroup() %>%
+  filter(date == Sys.Date()) %>%
+  filter(entry == n()) %>%
+  select(proj, tot_sec, desc) %>%
+  as.data.frame()
+if (curr$proj == "done") {
+  curr$tot_sec = 0
+}
+
+# Remove lines with "eofd" or "done" 
+df %<>% filter(!(proj %in% c("eofd", "done"))) %>% arrange(desc(dt))
+
+# SUMMARY STATS --------------------------------------------
+# Format seconds function
 format_seconds <- function(s) {
   hr <- floor(s / (60*60))
   mn <- floor(s / 60) %% 60
@@ -43,18 +66,8 @@ format_seconds <- function(s) {
   paste(hr, mn, sec, sep = ":")
 }
 
-df %<>%
-  mutate(tot_sec = round(difftime, 2)) %>%
-  mutate(tot_min = round(difftime / 60, 2)) %>%
-  mutate(tot_hr  = round(tot_min / 60, 2)) %>%
-  mutate(time    = format_seconds(difftime))
 
-# Remove lines with "eofd" or "done" 
-df %<>% filter(!(proj %in% c("eofd", "done"))) %>% arrange(desc(dt))
-
-# SUMMARY STATS --------------------------------------------
 # Today: Get total time by project, and combine all the times
-
 summarize_day <- function(day = Sys.Date(), output = "neat"){
   # FIXME: option to summarize by task in project?
   
@@ -68,8 +81,8 @@ summarize_day <- function(day = Sys.Date(), output = "neat"){
   # Filter today's data, group, and summarize
   summ_day <- df %>% filter(date == day) %>%
     group_by(proj) %>%
-    summarize(time = format_seconds(sum(difftime)),
-              hrs = sum(tot_hr))
+    summarize(time = format_seconds(sum(tot_sec)),
+              hrs = sum(tot_sec/3600))
   
   # Join description on, rename, and save out. Trim the desc if necessary
   summ_day <- left_join(summ_day, unique_desc, by = "proj") %>%
@@ -77,10 +90,15 @@ summarize_day <- function(day = Sys.Date(), output = "neat"){
     arrange(hrs)
   
   # Calculate totals and format. Append totals on.
-  tot <- summ_day %>% summarize(proj = "TOTAL:", desc = "",
-                             time = format_seconds(sum(hrs)*3600),
-                             hrs = sum(hrs))
+  tot <- df %>% filter(date == day) %>% 
+    ungroup() %>%
+    summarize(proj = "TOTAL:", desc = "",
+              time = format_seconds(sum(tot_sec)),
+              hrs = sum(tot_sec/3600)) 
+  # Combine into one
   summ_day <- rbind(summ_day, tot)
+  
+  summ_day$hrs %<>% sprintf("%2.2f", .)
   
   fmt_day <-  format(day, format = "%a %B %d, %Y")
   # Print out 
@@ -108,7 +126,7 @@ summarize_block <- function(ndays = 6) {
   
   week <- df %>% filter(date >= last_week) %>%
     group_by(proj) %>%
-    summarize(time = format_seconds(sum(difftime)),
+    summarize(time = format_seconds(sum(tot_sec)),
               hrs = sum(tot_hr, na.rm = T)) %>%
     arrange(desc(hrs))
   
@@ -124,18 +142,12 @@ summarize_block <- function(ndays = 6) {
   
 }
 
-# Current task  
-curr <- df %>% ungroup() %>%
-  filter(date == Sys.Date()) %>%
-  filter(entry == n()) %>%
-  select(tot_sec, desc) %>%
-  as.data.frame()
 
 # PRINT RESULTS --------------------------------
 # IDEA: Include a weekly summary for number of days
 # IDEA: Get total sums by project for N amount of time
 if (length(args) == 0){
-  cat("\nCurrent task:", curr$desc, "\nRunning time:", format_seconds(curr$tot_sec), "\n")
+  cat("\nCurrent task:", curr$proj, "->", curr$desc, "\nRunning time:", format_seconds(curr$tot_sec), "\n")
   summarize_day(Sys.Date())
 } 
 if ("y" %in% args) {

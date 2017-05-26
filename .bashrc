@@ -64,10 +64,34 @@ td() { echo -e "☐ $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my
 tdn() { echo -e "☐ @NAB: $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my.todo;}
 
 # Changed: > to >|
-t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;}
-te() { atom ~/.timesheet/timesheet.txt;}
+# t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;}
+# te() { atom ~/.timesheet/timesheet.txt;}
 #gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
-gt() { RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;}
+# gt() { RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;}
+
+# Positional parameters: http://wiki.bash-hackers.org/scripting/posparams
+# Comparisons (strings and ints differ): http://tldp.org/LDP/abs/html/comparison-ops.html
+t() {
+  if [ $# -eq 0 ]; then
+    echo "Printing summary:";
+    RScript --vanilla ~/github/ds-references/rscripts/time-entry.R;
+  elif [ $# -gt 0 ]; then
+    if [ "$1" == "-g" ]; then
+      # Summarize time sheet
+      echo "Summary for option g (options are y, y2, w, m)";
+      flag=$1;
+      [[ $1 = ${1#-} ]] && unset $flag || shift;
+      RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;
+    elif [ "$1" == "-e" ]; then
+      # Edit time sheet
+      vim H:/.timesheet/timesheet.txt;
+    else
+      # Add time record
+      echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;
+    fi
+
+  fi
+}
 
 # Add a note
 n() { echo -e "$(date +%Y-%m-%d) | ${@:1:999}\n$(cat ~/notes.md)" > ~/notes.md;}
