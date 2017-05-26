@@ -66,31 +66,40 @@ tdn() { echo -e "☐ @NAB: $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhi
 # Changed: > to >|
 # t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;}
 # te() { atom ~/.timesheet/timesheet.txt;}
-#gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
-# gt() { RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;}
+#mingw: gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
+#macosx: gt() { RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;}
 
 # Positional parameters: http://wiki.bash-hackers.org/scripting/posparams
 # Comparisons (strings and ints differ): http://tldp.org/LDP/abs/html/comparison-ops.html
+# TODO: -g for goal
+# TODO: -p group by proj and desc
+# TODO: use "in" and "out". Why? so i can add goals?
 t() {
+  # Switch to home directory, to avoid UNC problem on the network
+  cd ~
   if [ $# -eq 0 ]; then
-    echo "Printing summary:";
-    RScript --vanilla ~/github/ds-references/rscripts/time-entry.R;
+    # Print only current status
+    RScript --vanilla ~/github/ds-references/rscripts/time-entry.R "curr_only";
   elif [ $# -gt 0 ]; then
-    if [ "$1" == "-g" ]; then
+    if [ "$1" == "-s" ]; then
       # Summarize time sheet
-      echo "Summary for option g (options are y, y2, w, m)";
+      echo "Summary for option s (options are y, y2, w, m)";
       flag=$1;
       [[ $1 = ${1#-} ]] && unset $flag || shift;
       RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;
     elif [ "$1" == "-e" ]; then
       # Edit time sheet
-      vim H:/.timesheet/timesheet.txt;
+      atom ~/.timesheet/timesheet.txt;
+    elif [ "$1" == "-h" ]; then
+      # Show the last few time entries
+      head -n 10 ~/.timesheet/timesheet.txt;
     else
       # Add time record
       echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;
     fi
-
   fi
+  # Go back to directory you were in. cd "$OLDPWD"
+  cd ~-
 }
 
 # Add a note

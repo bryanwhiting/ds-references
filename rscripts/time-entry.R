@@ -1,6 +1,18 @@
 # Command line arguments (used in weeks)
 args <- commandArgs(trailingOnly = TRUE)
 
+# Format seconds function
+format_seconds <- function(s) {
+  hr <- floor(s / (60*60))
+  mn <- floor(s / 60) %% 60
+  sec <- round(s %% 60)
+  
+  hr <- sprintf("%02.0f", hr)
+  mn <- sprintf("%02.0f", mn)
+  sec <- sprintf("%02.0f", sec)
+  paste(hr, mn, sec, sep = ":")
+}
+
 # PROCESS DATA --------------------------------------------
 # options(echo = FALSE) # Set to true to see the code
 options(warn = -1)
@@ -19,7 +31,8 @@ suppressMessages(library(lubridate))
 # FIXME: How do you read in quotes?
 df <- read.table(path, sep = "|", quote = "\"", as.is = T)
 colnames(df) <- c("time", "proj", "desc")
-df <- sapply(df, trimws)
+df <- sapply(df, trimws) %>% as.data.frame()
+df$proj %<>% tolower()
 
 # Get current time and add it on
 now_row = as.data.frame(list(time = as.character(Sys.time()), proj = "now", desc = ""))
@@ -49,22 +62,17 @@ curr <- df %>% ungroup() %>%
 if (curr$proj == "done") {
   curr$tot_sec = 0
 }
+# Break here if no arguments
+if ("curr_only" %in% args) {
+  cat("\nCurrent task:", curr$proj, "->", curr$desc, "\nRunning time:", format_seconds(curr$tot_sec), "\n")
+  quit()
+}
 
 # Remove lines with "eofd" or "done" 
 df %<>% filter(!(proj %in% c("eofd", "done"))) %>% arrange(desc(dt))
 
 # SUMMARY STATS --------------------------------------------
-# Format seconds function
-format_seconds <- function(s) {
-  hr <- floor(s / (60*60))
-  mn <- floor(s / 60) %% 60
-  sec <- round(s %% 60)
-  
-  hr <- sprintf("%02.0f", hr)
-  mn <- sprintf("%02.0f", mn)
-  sec <- sprintf("%02.0f", sec)
-  paste(hr, mn, sec, sep = ":")
-}
+
 
 
 # Today: Get total time by project, and combine all the times
@@ -96,24 +104,21 @@ summarize_day <- function(day = Sys.Date(), output = "neat"){
               time = format_seconds(sum(tot_sec)),
               hrs = sum(tot_sec/3600)) 
   # Combine into one
-  summ_day <- rbind(summ_day, tot)
-  
-  summ_day$hrs %<>% sprintf("%2.2f", .)
+  out <- rbind(summ_day, tot)
+  out$hrs %<>% sprintf("%2.2f", .)
   
   fmt_day <-  format(day, format = "%a %B %d, %Y")
   # Print out 
   if (output == "neat") {
     
     cat("\n", fmt_day)
-    summ_day %>% knitr::kable(align = 'lccl')
+    out %>% knitr::kable(align = 'lccl')
     
   } else if (output == "simple") {
     # Kable doesn't work for some reason when printing out multiple times
     
-    
     cat("\n", format(day, format = "%a %B %d, %Y"), "\n")
-    
-    summ_day %>% select(-desc) %>% as.data.frame() %>% print(row.names = F)
+    out %>% select(-desc) %>% as.data.frame() %>% print(row.names = F)
     
   }
 }
@@ -124,16 +129,20 @@ summarize_block <- function(ndays = 6) {
   
   last_week <- Sys.Date() - ndays
   
-  week <- df %>% filter(date >= last_week) %>%
+  week <-  df %>% filter(date >= last_week) %>%
     group_by(proj) %>%
     summarize(time = format_seconds(sum(tot_sec)),
-              hrs = sum(tot_hr, na.rm = T)) %>%
+              hrs = sum(tot_sec/3600, na.rm = T)) %>%
     arrange(desc(hrs))
-  
-  tot <- week %>% summarize(proj = "TOTAL:",
-                             time = format_seconds(sum(hrs)*3600),
-                             hrs = sum(hrs))
+  # Weekly total 
+  tot <- df %>% filter(date >= last_week) %>%
+    ungroup() %>%
+    summarize(proj = "TOTAL:",
+              time = format_seconds(sum(tot_sec)),
+              hrs = sum(tot_sec/3600))
+  # combin
   out <- rbind(week, tot)
+  out$hrs %<>% sprintf("%2.2f", .)
   
   cat("\nLast ", ndays, " days \n")
   cat("\nFrom ", format(last_week, format = "%a %b %d, %Y"))
