@@ -45,7 +45,6 @@ function search (){
   egrep -rniI $1 . | sort | uniq
 }
 function searcho (){
-  #o for only the phrase found
   egrep -rnoI $1 . | sort | uniq
 }
 
