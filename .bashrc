@@ -35,6 +35,7 @@ goog(){
   flag=$1;
   [[ $1 = ${1#-} ]] && unset $flag || shift;
   concat=$(printf '%s+' ${@});
+  # FIXME: Windows only
   chrome.exe www.google.com/\#q=${concat%+};
 }
 
@@ -45,6 +46,7 @@ function search (){
   egrep -rniI $1 . | sort | uniq
 }
 function searcho (){
+  #o for only the phrase found (useful for seeing which tags in journal have been made)
   egrep -rnoI $1 . | sort | uniq
 }
 
@@ -63,10 +65,43 @@ td() { echo -e "☐ $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my
 tdn() { echo -e "☐ @NAB: $@\n$(cat /c/Users/bwhiting/my.todo)" > /c/Users/bwhiting/my.todo;}
 
 # Changed: > to >|
-t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;}
-te() { atom ~/.timesheet/timesheet.txt;}
-#gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
-gt() { RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;}
+# t() { echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;}
+# te() { atom ~/.timesheet/timesheet.txt;}
+#mingw: gt() { RScript.exe --vanilla "/h/github/ds-references/rscripts/time-entry.R" $@;}
+#macosx: gt() { RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;}
+
+# Positional parameters: http://wiki.bash-hackers.org/scripting/posparams
+# Comparisons (strings and ints differ): http://tldp.org/LDP/abs/html/comparison-ops.html
+# TODO: -g for goal
+# TODO: -p group by proj and desc
+# TODO: use "in" and "out". Why? so i can add goals?
+t() {
+  # Switch to home directory, to avoid UNC problem on the network
+  cd ~
+  if [ $# -eq 0 ]; then
+    # Print only current status
+    RScript --vanilla ~/github/ds-references/rscripts/time-entry.R "curr_only";
+  elif [ $# -gt 0 ]; then
+    if [ "$1" == "-s" ]; then
+      # Summarize time sheet
+      echo "Summary for option s (options are y, y2, w, m)";
+      flag=$1;
+      [[ $1 = ${1#-} ]] && unset $flag || shift;
+      RScript --vanilla ~/github/ds-references/rscripts/time-entry.R $@;
+    elif [ "$1" == "-e" ]; then
+      # Edit time sheet
+      atom ~/.timesheet/timesheet.txt;
+    elif [ "$1" == "-h" ]; then
+      # Show the last few time entries
+      head -n 10 ~/.timesheet/timesheet.txt;
+    else
+      # Add time record
+      echo -e "$(date +%Y-%m-%d_%H:%M:%S)|$1|${@:2:999}\n$(cat ~/.timesheet/timesheet.txt)" >| ~/.timesheet/timesheet.txt;
+    fi
+  fi
+  # Go back to directory you were in. cd "$OLDPWD"
+  cd ~-
+}
 
 # Add a note
 n() { echo -e "$(date +%Y-%m-%d) | ${@:1:999}\n$(cat ~/notes.md)" > ~/notes.md;}
