@@ -19,7 +19,8 @@ options(warn = -1)
 options(stringsAsFactors=FALSE)
 
 # FIXME: set path in ~/.timesheet_config
-if (grep("Windows", sessionInfo()) > 0) {
+
+if (length(grep("Windows", sessionInfo()$running)) > 0) {
   system = "Windows"
   path = "H:/.timesheet/timesheet.txt"
 } else {
