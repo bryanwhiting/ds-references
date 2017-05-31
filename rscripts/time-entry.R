@@ -1,6 +1,8 @@
 # Command line arguments (used in weeks)
 args <- commandArgs(trailingOnly = TRUE)
 
+# args <- c( "w", "a")
+
 # Format seconds function
 format_seconds <- function(s) {
   hr <- floor(s / (60*60))
@@ -32,6 +34,7 @@ suppressMessages(library(dplyr))
 suppressMessages(library(magrittr))
 suppressMessages(library(lubridate))
 suppressMessages(library(ggplot2))
+suppressMessages(library(stringr))
 # FIXME: How do you read in quotes?
 df <- read.table(path, sep = "|", quote = "\"", as.is = T)
 colnames(df) <- c("time", "proj", "desc")
@@ -88,16 +91,16 @@ summarize_day <- function(day = Sys.Date(), output = "neat", mk_plot = FALSE){
     summarize(desc = toString(desc))
   
   # Filter today's data, group, and summarize
-  summ_day <- df %>% filter(date == day) %>%
-    group_by(proj) %>%
-    summarize(time = format_seconds(sum(tot_sec)),
-              hrs = sum(tot_sec/3600))
-  
+    summ_day <- df %>% filter(date == day) %>%
+      group_by(proj) %>%
+      summarize(time = format_seconds(sum(tot_sec)),
+                hrs = sum(tot_sec/3600))
+    
   
   # Join description on, rename, and save out. Trim the desc if necessary
   summ_day <- left_join(summ_day, unique_desc, by = "proj") %>%
     mutate(desc = ifelse(nchar(desc) > 150, paste(substr(desc, 1, 150), "..."), desc)) %>%
-    arrange(hrs)
+    arrange(desc(hrs))
   
   # Calculate totals and format. Append totals on.
   tot <- df %>% filter(date == day) %>% 
@@ -111,41 +114,24 @@ summarize_day <- function(day = Sys.Date(), output = "neat", mk_plot = FALSE){
   # out <- rbind(summ_day, tot)
   # Instead of having a 
   out <- summ_day
-  out$hrs %<>% sprintf("%2.2f", .)
-  
-  colnames(out) <- tot
-  
   fmt_day <-  format(day, format = "%a %B %d, %Y")
-  
-  # OUTPUT ---------- 
-  # FIXME: Consider including a plot?
-  # if (mk_plot == TRUE) {
-  #   cat("Plot made")
-  #   ggplot(out, aes(x = proj, y = hrs, fill = proj)) + geom_bar(stat = "identity")
-  #   if (system == "Windows") {
-  #     ggsave("H:/.timesheet/dayplot.png")
-  #   } else {
-  #     ggsave("~/.timesheet/dayplot.png")
-  #   }
-  # }
-  
-  # Print out 
-  if (output == "neat") {
     
-    cat("\n", fmt_day)
-    out %>% knitr::kable(align = 'lccl')
+  if (nrow(out) > 0) {
     
-  } else if (output == "simple") {
-    # Kable doesn't work for some reason when printing out multiple times
+    out$hrs %<>% sprintf("%2.2f", .)
+   
+    # Merge on an empty row for day 
+    out <- cbind("", out)
+    colnames(out) <- c(fmt_day, tot)
+    # Print out 
+    # cat("\n", fmt_day )
+    out %>% knitr::kable(align = 'llccl') %>% print()
     
-    cat("\n", format(day, format = "%a %B %d, %Y"), "\n")
-    # Only print if ther'es more than just the summary row.
-    if (nrow(out) > 1) {
-      out %>% select(-desc) %>% as.data.frame() %>% print(row.names = F)
-    } else {
-      cat("-----\n")
-    }
+  } else {
+    cat("\n", fmt_day, ": Empty")
+    
   }
+  
   
 }
 
@@ -181,20 +167,44 @@ summarize_block <- function(ndays = 6) {
 # PRINT RESULTS --------------------------------
 # IDEA: Include a weekly summary for number of days
 # IDEA: Get total sums by project for N amount of time
+# This is if args == "-s"
 if (length(args) == 0){
   cat("\nCurrent task:", curr$proj, "->", curr$desc, "\nRunning time:", format_seconds(curr$tot_sec), "\n")
   summarize_day(Sys.Date())
 } 
-if ("y" %in% args) {
-  summarize_day(Sys.Date() -1 )
+
+
+# Find which argument is the y argument
+index <- str_count(args, "y[0-9]*")
+if (sum(index) > 0) {
+  yarg <- args[index]
+  # Extract the days. If it's just y, and not y#, default y to 1 (yesterday's)
+  ndays <- as.numeric(sub("y", "", yarg))
+  if (length(ndays) == 0 | is.na(ndays)) ndays <- 1
+  
+  # Get the date 
+  day <- Sys.Date() - ndays
+  
+  # Print Summary back n days
+  summarize_day(day)
+  
+  # Print project detail
+  if ("d" %in% args){
+    # cat(args)
+    summ_day <- df %>% filter(date == day) %>%
+      group_by(proj, desc) %>%
+      summarize(time = format_seconds(sum(tot_sec)),
+                hrs = round(sum(tot_sec/3600),2)) %>%
+      arrange(proj, desc(hrs))
+    summ_day %>% as.data.frame() %>% knitr::kable() %>% print()
+  }
+  
 }
-if ("y2" %in% args) {
-  # sapply(Sys.Date() - 1:2, summarize_day)
-  summarize_day(Sys.Date() - 2)
-}
+
+# Weekly summary
 if ("w" %in% args) {
   if ("a" %in% args) {
-    lapply(Sys.Date() - 6:1, function(i) summarize_day(i, output = "simple"))
+    lapply(Sys.Date() - 6:0, summarize_day)
   }
   summarize_block(6)
 }
@@ -203,3 +213,19 @@ if ("m" %in% args) {
 }
 
 options(warn = 0)
+
+
+
+# GRAVEYARD ----------
+
+  # OUTPUT ---------- 
+  # FIXME: Consider including a plot?
+  # if (mk_plot == TRUE) {
+  #   cat("Plot made")
+  #   ggplot(out, aes(x = proj, y = hrs, fill = proj)) + geom_bar(stat = "identity")
+  #   if (system == "Windows") {
+  #     ggsave("H:/.timesheet/dayplot.png")
+  #   } else {
+  #     ggsave("~/.timesheet/dayplot.png")
+  #   }
+  # }
