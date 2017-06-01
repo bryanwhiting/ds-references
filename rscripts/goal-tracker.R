@@ -2,6 +2,8 @@
 # IDEAS:
 # You have a start and end date, but you could also have a "number of times". So if it's something you only want to do 5 days a week, you could specify that
 # TOOD: summary by week?
+# TODO: g -l1 log goal for yesterday
+# Todo: allow for future planning before the field day
 
 
 args <- commandArgs(trailingOnly = T)
@@ -9,8 +11,32 @@ options(stringsAsFactors = F)
 suppressMessages(library(dplyr))
 suppressMessages(library(magrittr))
 
+if (length(grep("Windows", sessionInfo()$running)) > 0) {
+  system = "Windows"
+  folder_path = "C:/Users/bwhiting/Dropbox/jrnl/garden"
+} else {
+  system = "Else"
+  folder_path = "~/Dropbox/jrnl/garden"
+}
+
+seed_path <- file.path(folder_path, "seeds")
+
 field_day <- "Sunday"
 
+# Get date of previous field day (Sunday) 
+day <-  Sys.Date()
+prev.days <- seq(day - 6, day, by='day')
+field_day_date <- prev.days[weekdays(prev.days)== field_day]
+harvest_day_date <- field_day_date + 6
+
+
+if ("-help" %in% args) {
+  cat("Options include:\n") 
+  cat("    g -stream <name>: Add a new stream.\n") 
+  cat("    g -seed <name>: Add a new seed.\n") 
+  cat("    g -log <name1> <name2> ... <nameN>: Track streams, logs, and stones\n") 
+  q()
+}
 
 # Add a new goal:
 if ("-stream" %in% args) {
@@ -23,6 +49,7 @@ if ("-stream" %in% args) {
     goal_name <- readLines(file("stdin"), 1)
   } else {
     goal_name = args[2] 
+    cat("\nStream name:", goal_name, "\n") 
   }
   
   cat("Define your goal (must be binary):")
@@ -38,14 +65,18 @@ if ("-stream" %in% args) {
   stream <- paste(goal_name, desc, start, end, sep = "|")
  
   # Append to file 
-  con <- file("~/Dropbox/jrnl/streams.txt", 'a')
+  filename <- file.path(folder_path, "streams.txt")
+  con <- file(filename, 'a')
   cat(stream, file = con, sep = "\n", append = T)
   close(con)
   
   str <- paste("\n[Added new stream: '", goal_name,": ", desc, "' through ", as.character(end),".]\n", sep = "")
   cat(str) 
   
-} else if ("-seed" %in% args) {
+} else if ("-seed" %in% args | "-se" %in% args) {
+  # FIXME: If there's already a seed of that name, reject it.
+  # TODO: g -seed list. List all seeds
+  # TODO: g -se -edit. Open file for editing using system command.
   
   # Get seed name 
   if (length(args) <= 1) {
@@ -53,42 +84,64 @@ if ("-stream" %in% args) {
     seed_name <- readLines(file("stdin"), 1)
   } else {
     seed_name = args[2] 
+    cat("\nSeed name:", seed_name, "\n") 
   }
   
   # Get description from user
-  cat("Describe your seed (must be binary):")
-  desc <- readLines(file("stdin"), 1)
-  if (length(desc) == 0 ) stop("Please enter a description.")
+  if (length(args) <= 2) {
+    cat("Describe your seed (must be binary):")
+    desc <- readLines(file("stdin"), 1)
+    if (length(desc) == 0 ) stop("Please enter a description.")
+    q()
+  } else {
+    # If the user supplies multiple arguments, the rest of the argmuents are the description  
+    desc <- paste(args[3:length(args)], collapse = " ") 
+  }
   
-  # Get date of previous field day (Sunday) 
-  day <-  Sys.Date()
-  prev.days <- seq(day - 6, day, by='day')
-  field_day_date <- prev.days[weekdays(prev.days)== field_day]
+
   
   # Save out to text: seed_name | description
   seed <- paste(seed_name, desc, sep = "|")
-  file_name <- file.path("~/Dropbox/jrnl", paste(field_day_date, "-seeds.txt", sep = ""))
+  file_name <- file.path(seed_path, paste(field_day_date, "-seeds.txt", sep = ""))
   con <- file(file_name, 'a')
   cat(seed, file = con, sep = "\n", append = T)
   close(con)
   
   # Message user
-  str <- paste("\n[Added new seed: '", seed_name,": ", desc, 
+  msg <- paste("\n[Added new seed: '", seed_name,": ", desc, 
                "' for field day ", as.character(field_day_date),".]\n", sep = "")
-  cat(str)
+  cat(msg)
   
 
-} else if ("-s" %in% args) {
+} else if ("-log" %in% args | "-l" %in% args) {
+  # APPEND TO LOG --------------------------------------------
+  # CONSIDER: I may want to prepend to the log file, so that it's easier to read? Not really necessary.
+  # TODO: Allow for -log1 for logging yesterday. (use regular expression, and change Sys.Date())
   
-  df <- read.table("~/Dropbox/jrnl/stream-log.txt", sep = "|")
-  colnames(df) <- c("date", "goal")
-  df$date %<>% as.Date()
+  # Connect to log file
+  filename <- file.path(folder_path, "log.txt")
+  con <- file(filename, 'a')
+  
+  # Get every argument excep the log 
+  to_log <- args[args != "-log"]
+  to_log <- args[args != "-l"]
+  
+  # Save out to file
+  for (a in to_log) {
+    line <- paste(Sys.Date(), a, sep = "|")
+    cat(line, file = con, sep = "\n", append = T)
+  }
+  close(con)
+  
+  msg <- paste("[Logs '", paste(to_log, collapse = ", "), "' added.]", sep = "")
+  cat(msg)
   
 } else {
   # Default: print goals 
    
   # Print active daily goals 
-  df <- read.table("~/Dropbox/jrnl/streams.txt", sep = "|")
+  filename <- file.path(folder_path, "streams.txt")
+  df <- read.table(filename, sep = "|")
   names(df) <- c("stream", "description", "start", "end")
   df$start %<>% as.Date()
   df$end %<>% as.Date()
@@ -96,9 +149,11 @@ if ("-stream" %in% args) {
   df %<>% filter(Sys.Date() <= end)
   
   # Summary statistics
-  log <- read.table("~/Dropbox/jrnl/streams-log.txt", sep = "|")
-  colnames(log) <- c("date", "stream")
-  log %<>% unique()
+  filename <- file.path(folder_path, "log.txt")
+  df_log <- read.table(filename, sep = "|", col.names = c("date", "finished"))
+  df_log$date %<>% as.Date("%Y-%m-%d")
+  df_log %<>% unique()
+  
   # How many days have you done this stream?
   # group_by(stream) %>% 
   
@@ -107,17 +162,17 @@ if ("-stream" %in% args) {
   for (i in 1:nrow(df)){
     # For each stream, count how many records lie between the dates 
     s <- df[i, ]
-    df$stones[i] <- log %>% filter(stream == s$stream) %>%
+    df$stones[i] <- df_log %>% filter(finished == s$stream) %>%
       filter(date >=s$start, date <=s$end) %>%
       count() %>%  as.numeric()
     
     # 0/1 for today?
-    df$thisday[i] <- log %>% filter(stream == s$stream) %>%
+    df$thisday[i] <- df_log %>% filter(finished == s$stream) %>%
       filter(date == Sys.Date()) %>%
       count() %>% as.numeric()
     
     # Last 6 days. FIXME: Only go to #monday (or @gardening day)
-    df$week[i] <- log %>% filter(stream == s$stream) %>%
+    df$thisweek[i] <- df_log %>% filter(finished == s$stream) %>%
       filter(date >=s$start, date <=s$end) %>%
       filter(date >= Sys.Date() - 6) %>%
       count() %>%  as.numeric()
@@ -154,8 +209,30 @@ if ("-stream" %in% args) {
   
   knitr::kable(df, align = "cccccccccc") %>% print()
   
-  # FIXME:Read in and print streams
-  #df <- read.table("~/Dropbox/jrnl/")
+  # TRACK SEEDS --------------------------------------------------- 
+  # Alternatively, you could read in the path using the field_day_date
+  filename <- list.files(seed_path, full.names = T) %>% tail(1)
+  df_seeds <- read.table(filename, sep = "|", col.names = c("name", "desc"))
+  
+  # Compare with log: read in log, filter to this week. Create Harvested and harvest date fields
+  df_log_field <- df_log %>% 
+    filter(date >= field_day_date) %>%
+    rename(name = finished, harvest_date = date) %>% 
+    mutate(harvested = 1)
+  
+  df_seeds <- left_join(df_seeds, df_log_field, by = "name")
+  
+  # OUTPUT 
+  df_seeds$harvested[is.na(df_seeds$harvested)] <- 0
+  tot_harv <- paste(sum(df_seeds$harvested), "/", nrow(df_seeds), sep = "")
+  
+  df_seeds %<>% arrange(harvested, desc(harvest_date))
+  colnames(df_seeds) <- c("seed", "desc", "harvest date", tot_harv)
+  
+  # cat("\nSeeds due", as.character(harvest_day_date))
+  df_seeds %>% knitr::kable(align = "cccccc") %>% print()
+  
+  
 }
 
 
