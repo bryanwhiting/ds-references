@@ -10,6 +10,7 @@ args <- commandArgs(trailingOnly = T)
 options(stringsAsFactors = F)
 suppressMessages(library(dplyr))
 suppressMessages(library(magrittr))
+suppressMessages(library(knitr))
 
 if (length(grep("Windows", sessionInfo()$running)) > 0) {
   system = "Windows"
@@ -148,8 +149,35 @@ if ("-stream" %in% args) {
   msg <- paste("[Logs '", paste(to_log, collapse = ", "), "' added.]", sep = "")
   cat(msg)
   
+} else if ("-t" %in% args){
+  # PLANT SEEDS TODAY --------------------------
+  # Add ability to track goals today
+  # args <- c("-t", "1", "2", "4")
+  # FIXME: every time you run this code, it overwrites your planted status
+  
+  to_track <- args[-which(args == "-t")] %>% as.numeric()
+  # Read in seeds
+  seed_filename <- list.files(seed_path, full.names = T) %>% tail(1)
+  df_seeds <- read.table(seed_filename, sep = "|", header = T)
+  
+  if (!("planted" %in% names(df_seeds))) {
+    # If planted doesn't exist, created it
+    df_seeds$planted <- NA
+  } else {
+    # Reset planted = NA if it's not been planted today
+    df_seeds %>% mutate(planted = ifelse(planted != Sys.Date(), NA, planted))
+  }
+  # Plant the seeds  
+  df_seeds$planted[to_track] <- as.character(Sys.Date())
+  write.table(df_seeds, file = seed_filename, sep = "|", row.names = F) 
+  
+  msg <- paste("[Planted seeds '", paste(df_seeds$name[to_track], collapse = ", "), "' today]", sep = "")
+  cat(msg)
+  q()
+  
 } else {
-  # Default: print goals 
+  # Default: g <no options> 
+  # PRINT STREAMS AND CURRENT SEEDS
    
   # Print active daily goals 
   filename <- file.path(folder_path, "streams.txt")
@@ -223,8 +251,25 @@ if ("-stream" %in% args) {
   
   # TRACK SEEDS --------------------------------------------------- 
   # Alternatively, you could read in the path using the field_day_date
-  filename <- list.files(seed_path, full.names = T) %>% tail(1)
-  df_seeds <- read.table(filename, sep = "|", col.names = c("name", "desc"))
+  seed_filename <- list.files(seed_path, full.names = T) %>% tail(1)
+  df_seeds <- read.table(seed_filename, sep = "|", header = T)
+  
+  # If the file's never been analyze before, it'll only have two columns 
+  # Strip off the other columns and re-calculate the harvest date and success rate
+  if( ncol(df_seeds) != 2) {
+    # Reduce to just what we want 
+    df_seeds %<>% select(name, desc)
+  } else {
+    colnames(df_seeds) <- c("name", "desc")
+  }
+  # FIXME: Find a different way to do the merge with log. I need a way to have one data set be readable by these two scripts
+  # If seeds have been planted, print them
+  if ("planted" %in% names(df_seeds)) {
+    df_seeds %>% filter(planted == Sys.Date()) %>%
+      select(name, desc) %>%
+      kable() %>%
+      print()
+  }
   
   # Compare with log: read in log, filter to this week. Create Harvested and harvest date fields
   df_log_field <- df_log %>% 
@@ -238,9 +283,15 @@ if ("-stream" %in% args) {
   df_seeds$harvested[is.na(df_seeds$harvested)] <- 0
   tot_harv <- paste(sum(df_seeds$harvested), "/", nrow(df_seeds), sep = "")
   
-  df_seeds %<>% arrange(harvested, desc(harvest_date))
-  colnames(df_seeds) <- c("seed", "desc", "harvest date", tot_harv)
-  
+  df_seeds %<>% arrange(harvested, desc(harvest_date)) %>%
+    mutate(id = seq_along(name)) %>% 
+    select(id, everything())
+   
+  # Save out this file
+  write.table(df_seeds, file = seed_filename, sep = "|", row.names = F)
+ 
+  # print out 
+  colnames(df_seeds) <- c("id", "seed name", "desc", "harvest date", tot_harv)
   # cat("\nSeeds due", as.character(harvest_day_date))
   df_seeds %>% knitr::kable(align = "cccccc") %>% print()
   
