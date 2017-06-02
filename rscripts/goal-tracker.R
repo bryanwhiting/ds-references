@@ -30,6 +30,10 @@ field_day_date <- prev.days[weekdays(prev.days)== field_day]
 harvest_day_date <- field_day_date + 6
 
 
+# Test for args
+arg_ind_log <- grep("-l[0-9]?|-log[0-9]?", args)
+
+
 if ("-help" %in% args) {
   cat("Options include:\n") 
   cat("    g -stream <name>: Add a new stream.\n") 
@@ -113,22 +117,30 @@ if ("-stream" %in% args) {
   cat(msg)
   
 
-} else if ("-log" %in% args | "-l" %in% args) {
+} else if (length(arg_ind_log) > 0) {
   # APPEND TO LOG --------------------------------------------
   # CONSIDER: I may want to prepend to the log file, so that it's easier to read? Not really necessary.
-  # TODO: Allow for -log1 for logging yesterday. (use regular expression, and change Sys.Date())
+ 
+  # Pick the date depending on the log# (if it exists)
+  test_fornum <- grep("-l[0-9]+|-log[0-9]+", args)
+  if (length(test_fornum) > 0 ){
+    logargs <- args[test_fornum]
+    day_lag <- gsub("-l|-log", "", logargs) %>% as.numeric()
+  } else {
+    day_lag <- 0
+  }
+  log_date <- Sys.Date() - day_lag
   
   # Connect to log file
   filename <- file.path(folder_path, "log.txt")
   con <- file(filename, 'a')
   
   # Get every argument excep the log 
-  to_log <- args[args != "-log"]
-  to_log <- args[args != "-l"]
+  to_log <- args[-arg_ind_log]
   
   # Save out to file
   for (a in to_log) {
-    line <- paste(Sys.Date(), a, sep = "|")
+    line <- paste(log_date, a, sep = "|")
     cat(line, file = con, sep = "\n", append = T)
   }
   close(con)
