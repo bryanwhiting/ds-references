@@ -2,8 +2,14 @@
 # IDEAS:
 # You have a start and end date, but you could also have a "number of times". So if it's something you only want to do 5 days a week, you could specify that
 # TOOD: summary by week?
-# TODO: g -l1 log goal for yesterday
 # Todo: allow for future planning before the field day
+# TODO: allow for summary of yesterday (so you can get a harvest on Sunday)
+# TODO: g <no-option> will always pull back the last, but we only want this weeks. Last is easy to get, but we want to pull back the one from this week, if there is one.
+# TODO: add functions so you can pull back last week's field
+# g <no-option> should be "today's" view. g -t should summary
+# TODO: add monthly visions.
+# IDEA: consider incorporating daily statements into each g <> call.
+
 
 
 args <- commandArgs(trailingOnly = T)
