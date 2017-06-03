@@ -7,6 +7,7 @@
 
 
 args <- commandArgs(trailingOnly = T)
+
 options(stringsAsFactors = F)
 suppressMessages(library(dplyr))
 suppressMessages(library(magrittr))
@@ -20,6 +21,7 @@ if (length(grep("Windows", sessionInfo()$running)) > 0) {
   folder_path = "~/Dropbox/jrnl/garden"
 }
 
+# Make harvested
 seed_path <- file.path(folder_path, "seeds")
 
 field_day <- "Sunday"
@@ -30,11 +32,78 @@ prev.days <- seq(day - 6, day, by='day')
 field_day_date <- prev.days[weekdays(prev.days)== field_day]
 harvest_day_date <- field_day_date + 6
 
+# Log file
+log_filename <- file.path(folder_path, "log.txt")
+df_log <- read.table(log_filename, sep = "|", col.names = c("date", "finished"))
+df_log$date %<>% as.Date("%Y-%m-%d")
+df_log %<>% unique()
 
 # Test for args
 arg_ind_log <- grep("-l[0-9]?|-log[0-9]?", args)
 
+# DATA PROCESSING ------------------------------------------------------------
+# PROCESS STREAMS ------------------------------------------------------------
+# Print active daily goals 
+filename <- file.path(folder_path, "streams.txt")
+df_streams <- read.table(filename, sep = "|")
+names(df_streams) <- c("stream", "desc", "start", "end")
+df_streams$start %<>% as.Date()
+df_streams$end %<>% as.Date()
 
+# Look at streams that haven't ended yet 
+df_streams %<>% filter(Sys.Date() <= end)
+
+# IDEA: How many days have you done this stream?
+for (i in 1:nrow(df_streams)){
+  # For each stream, count how many records lie between the dates 
+  s <- df_streams[i, ]
+  df_streams$cnt[i] <- df_log %>% filter(finished == s$stream) %>%
+    filter(date >=s$start, date <=s$end) %>%
+    count() %>%  as.numeric()
+  
+  # 0/1 for today?
+  df_streams$thisday[i] <- df_log %>% filter(finished == s$stream) %>%
+    filter(date == Sys.Date()) %>%
+    count() %>% as.numeric()
+  
+  # Success this week
+  df_streams$thisweek[i] <- df_log %>% filter(finished == s$stream) %>%
+    filter(date >=s$start, date <=s$end) %>%
+    filter(date >= field_day_date) %>%
+    count() %>%  as.numeric()
+  
+} 
+# How many cnts are possible? Each day is a possibility. 5/29 and 5/30 are two days.
+df_streams$today <- Sys.Date()
+df_streams$possible <- as.numeric(df_streams$today - df_streams$start) + 1
+# stats
+df_streams$streak <- paste(df_streams$cnt, "/", df_streams$possible, sep = "")
+df_streams$rate <- (df_streams$cnt / df_streams$possible) %>% round(2)
+
+# What's left after today
+df_streams$left <- as.numeric(df_streams$end - df_streams$today)
+df_streams$total <- as.numeric(df_streams$end - df_streams$start) + 1
+
+# Convert week to be the ratio of days possible
+ndays_since_field <- as.numeric(Sys.Date() - field_day_date) + 1
+# ndays_since_field is number of days since last field day, but if you started your goal in the middle of the week, then don't count back to the field day. hence min(x, y).
+df_streams %<>% mutate(thisweek = paste(thisweek, "/", min(ndays_since_field, possible), sep = ""))
+
+# Prepare for output
+df_streams$end %<>% format("%b %d")
+df_streams$start %<>% format("%b %d")
+
+# remove detail
+df_streams %<>% select(-today)
+
+
+
+
+
+
+
+
+# OPTIONS ----------------
 if ("-help" %in% args) {
   cat("Options include:\n") 
   cat("    g -stream <name>: Add a new stream.\n") 
@@ -103,14 +172,23 @@ if ("-stream" %in% args) {
     desc <- paste(args[3:length(args)], collapse = " ") 
   }
   
-
+  # Save out to text: id |seed_name | description | planted | harvested_date | harvested
+  seed <- c(NA, seed_name, desc, rep(NA, 3))
+  names(seed) <- c("id", "seed", "desc", "planted", "harvest_date", "harvested")
+  seed_filename <- file.path(seed_path, paste(field_day_date, "-seeds.txt", sep = ""))
+  # con <- file(file_name, 'a')
+  # cat(seed, file = con, sep = "\n", append = T)
+  # close(con)
   
-  # Save out to text: seed_name | description
-  seed <- paste(seed_name, desc, sep = "|")
-  file_name <- file.path(seed_path, paste(field_day_date, "-seeds.txt", sep = ""))
-  con <- file(file_name, 'a')
-  cat(seed, file = con, sep = "\n", append = T)
-  close(con)
+  # If the seed_filename exists, append to it
+  if (file.exists(seed_filename)){
+    df_seeds <- read.table(seed_filename, sep = "|", header = T)
+    df_seeds <- rbind(df_seeds, seed)
+  } else {
+    df_seeds <- as.data.frame(t(seed))
+  }
+  # Save out 
+  write.table(df_seeds, seed_filename, sep = "|", row.names = F)
   
   # Message user
   msg <- paste("\n[Added new seed: '", seed_name,": ", desc, 
@@ -146,7 +224,7 @@ if ("-stream" %in% args) {
   }
   close(con)
   
-  msg <- paste("[Logs '", paste(to_log, collapse = ", "), "' added.]", sep = "")
+  msg <- paste("[Logs '", paste(to_log, collapse = ", "), "' added.]\n", sep = "")
   cat(msg)
   
 } else if ("-t" %in% args){
@@ -159,143 +237,88 @@ if ("-stream" %in% args) {
   # Read in seeds
   seed_filename <- list.files(seed_path, full.names = T) %>% tail(1)
   df_seeds <- read.table(seed_filename, sep = "|", header = T)
-  
-  if (!("planted" %in% names(df_seeds))) {
-    # If planted doesn't exist, created it
-    df_seeds$planted <- NA
+   
+  # If to_track doesn't have any numbers just print out 
+  if (length(to_track) == 0) {
+    
+    # Filter to unfinished seeds 
+    today_seeds <- df_seeds %>% 
+      filter(planted == Sys.Date(), harvested != 1) %>%
+      select(seed, desc) %>% 
+      mutate(type = "seed") %>%
+      rename(name = seed)
+    # Filter to unfinished streams
+    today_streams <- df_streams %>% filter(thisday != 1) %>%
+      select(stream, desc) %>% mutate(type = "stream") %>%
+      rename(name = stream)
+    
+    today_out <- rbind(today_seeds, today_streams)
+    cat("\n\nPending seeds and streams:")
+    kable(today_out, align = "cccccccccc") %>% print()
+    cat("\n\n")
+    
   } else {
-    # Reset planted = NA if it's not been planted today
-    df_seeds %>% mutate(planted = ifelse(planted != Sys.Date(), NA, planted))
+    
+    # Plant the seeds  
+    df_seeds$planted[to_track] <- as.character(Sys.Date())
+    write.table(df_seeds, file = seed_filename, sep = "|", row.names = F) 
+    
+    msg <- paste("[Planted seeds '", 
+                 paste(df_seeds$name[to_track], collapse = ", "), 
+                 "' today]", 
+                 sep = "")
+    cat(msg)
   }
-  # Plant the seeds  
-  df_seeds$planted[to_track] <- as.character(Sys.Date())
-  write.table(df_seeds, file = seed_filename, sep = "|", row.names = F) 
-  
-  msg <- paste("[Planted seeds '", paste(df_seeds$name[to_track], collapse = ", "), "' today]", sep = "")
-  cat(msg)
-  q()
+ 
   
 } else {
+  # PRINT STREAMS AND CURRENT SEEDS -----------------------------------------
   # Default: g <no options> 
-  # PRINT STREAMS AND CURRENT SEEDS
-   
-  # Print active daily goals 
-  filename <- file.path(folder_path, "streams.txt")
-  df <- read.table(filename, sep = "|")
-  names(df) <- c("stream", "description", "start", "end")
-  df$start %<>% as.Date()
-  df$end %<>% as.Date()
   
-  df %<>% filter(Sys.Date() <= end)
-  
-  # Summary statistics
-  filename <- file.path(folder_path, "log.txt")
-  df_log <- read.table(filename, sep = "|", col.names = c("date", "finished"))
-  df_log$date %<>% as.Date("%Y-%m-%d")
-  df_log %<>% unique()
-  
-  # How many days have you done this stream?
-  # group_by(stream) %>% 
-  
-  # A stone is just a successful goal
-  # A stone is a count. How many stones can you collect? 
-  for (i in 1:nrow(df)){
-    # For each stream, count how many records lie between the dates 
-    s <- df[i, ]
-    df$stones[i] <- df_log %>% filter(finished == s$stream) %>%
-      filter(date >=s$start, date <=s$end) %>%
-      count() %>%  as.numeric()
-    
-    # 0/1 for today?
-    df$thisday[i] <- df_log %>% filter(finished == s$stream) %>%
-      filter(date == Sys.Date()) %>%
-      count() %>% as.numeric()
-    
-    # Last 6 days. FIXME: Only go to #monday (or @gardening day)
-    df$thisweek[i] <- df_log %>% filter(finished == s$stream) %>%
-      filter(date >=s$start, date <=s$end) %>%
-      filter(date >= Sys.Date() - 6) %>%
-      count() %>%  as.numeric()
-    
-  } 
-  # the quarry: How many stones are possible? Each day is a possibility. 5/29 and 5/30 are two days.
-  df$today <- Sys.Date()
-  df$possible <- as.numeric(df$today - df$start) + 1
-  # stats
-  df$streak <- paste(df$stones, "/", df$possible, sep = "")
-  df$rate <- (df$stones / df$possible) %>% round(2)
-  
-  # What's left after today
-  df$left <- as.numeric(df$end - df$today)
-  df$total <- as.numeric(df$end - df$start) + 1
-  
-  # Prepare for output
-  df$end %<>% format("%b %d")
-  df$start %<>% format("%b %d")
-  
-  # remove detail
-  df %<>% select(-today)
+  # Print current streams
   if (!("-d" %in% args)) {
-    # If you specify -d, that means you want detail
-    df %<>% select(-description, -start, -end, -total,-rate, -stones, -possible)  
+    df_streams %<>% select(-desc, -start, -end, -total,-rate, -cnt, -possible)  
   }
-  
-  # Output
-  if ("-d" %in% args){
-    cat("\nCurrent streams (detailed)~~~\n")
-  } else {
-    cat("\nCurrent streams ~~~\n")
-  }
-  
-  knitr::kable(df, align = "cccccccccc") %>% print()
+  cat("\n\nCurrent streams ~~~~ and seeds ...\n")
+  kable(df_streams, align = "cccccccccc") %>% print()
   
   # TRACK SEEDS --------------------------------------------------- 
   # Alternatively, you could read in the path using the field_day_date
+  # FIXME: check to see if the seed exists
   seed_filename <- list.files(seed_path, full.names = T) %>% tail(1)
   df_seeds <- read.table(seed_filename, sep = "|", header = T)
-  
-  # If the file's never been analyze before, it'll only have two columns 
-  # Strip off the other columns and re-calculate the harvest date and success rate
-  if( ncol(df_seeds) != 2) {
-    # Reduce to just what we want 
-    df_seeds %<>% select(name, desc)
-  } else {
-    colnames(df_seeds) <- c("name", "desc")
-  }
-  # FIXME: Find a different way to do the merge with log. I need a way to have one data set be readable by these two scripts
-  # If seeds have been planted, print them
-  if ("planted" %in% names(df_seeds)) {
-    df_seeds %>% filter(planted == Sys.Date()) %>%
-      select(name, desc) %>%
-      kable() %>%
-      print()
-  }
   
   # Compare with log: read in log, filter to this week. Create Harvested and harvest date fields
   df_log_field <- df_log %>% 
     filter(date >= field_day_date) %>%
-    rename(name = finished, harvest_date = date) %>% 
+    rename(seed = finished, harvest_date = date) %>% 
     mutate(harvested = 1)
   
-  df_seeds <- left_join(df_seeds, df_log_field, by = "name")
+  # Merge log onto seeds, to count "harvested". If harvested is already in the data, remove those columns
+  if ("harvested" %in% names(df_seeds)) { df_seeds %<>% select(-harvested) }
+  if ("harvest_date" %in% names(df_seeds)){ df_seeds %<>% select(-harvest_date)}
+  # Create the harvested file
+  df_seeds <- left_join(df_seeds, df_log_field, by = "seed")
   
   # OUTPUT 
   df_seeds$harvested[is.na(df_seeds$harvested)] <- 0
-  tot_harv <- paste(sum(df_seeds$harvested), "/", nrow(df_seeds), sep = "")
   
   df_seeds %<>% arrange(harvested, desc(harvest_date)) %>%
-    mutate(id = seq_along(name)) %>% 
+    mutate(id = seq_along(seed)) %>% 
     select(id, everything())
    
   # Save out this file
   write.table(df_seeds, file = seed_filename, sep = "|", row.names = F)
  
   # print out 
-  colnames(df_seeds) <- c("id", "seed name", "desc", "harvest date", tot_harv)
-  # cat("\nSeeds due", as.character(harvest_day_date))
-  df_seeds %>% knitr::kable(align = "cccccc") %>% print()
+  # Rename harvested to be the success rate
+  tot_harv <- paste(sum(df_seeds$harvested), "/", nrow(df_seeds), sep = "")
+  colnames(df_seeds) <- c("id", "seed", "desc", "planted", "harvested date", tot_harv)
+  
+  df_seeds %>% kable(align = "cccccc") %>% print()
   
   
 }
 
+cat("\n")
 
