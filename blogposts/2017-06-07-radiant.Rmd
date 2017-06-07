@@ -1,0 +1,50 @@
+---
+title: "Radiant"
+author: "Bryan Whiting"
+date: "June 7, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# My big idea: an open-source GUI to track data
+
+At work, I'm constantly faced with popping open a new data set, exploring its contents, creating summary statistics, cross tabs, plots, etc. all to get a sense for what the data mean. I then thought, wouldn't it be great to have a GUI that could allow me to click around to find what I need, and then track what I've done. Specifically, these things would be cool:
+
+* GUI to load, manipulate, save out data
+* Creates new variables (with transformations, interactions, etc.)
+* Creates plots, transforms data
+* Does regressions on the fly
+* Spits out R code for everything I've done
+
+In my searching, I first came across [Superset](https://github.com/airbnb/superset) and marveled that such an open-source tool exists. I couldn't figure out Docker, so I still don't have this set up. But it's something to be aware of. Even still, it was independent of R and reproducibility.
+
+# Introducing Radiant
+
+I've learned that every good idea I have has probably already been developed by someone. [Radiant](http://127.0.0.1:5512/?SSUID=local-ed64f0) satisfies all of those criteria above. I haven't been able to dive deeply into it's capabilities beyond the steps I've outline above, but I'm impressed. Watch this quick [YouTube](https://www.youtube.com/watch?v=kFVxcpdoKi8) to get a sense of what else is possible.
+
+# Impressions
+
+I thought the whole reason I learned R was so that I wouldn't have to use something like [JMP](https://www.jmp.com/en_us/offers/free-trial.html?utm_source=google&utm_medium=cpc&utm_campaign=td70114000002KZJq&utm_term=%7Bkeyword%7D&utm_content=US-TRIAL-BRAND) or [SPSS](https://www.ibm.com/analytics/us/en/technology/spss/)? The notion of point-and-click statistical software is greate for beginners, but for those who want to dive in and make a career in data science, you have to learn how to code. That, and you never really konw what point-and-click software packages are doing. Radiant is different in the sense that I think it could facilitate how you do work. If you find you're constantly looking at new data sets, writing the same code to visualize them, Radiant may be for you. 
+
+Now that I see the idea in action, I'm impressed. That's why I'm writing. But I don't know if this is something I'll actually use long term. Here are some initial upsides and downsides:
+
+Upsides:
+
+* You can do a lot more in Shiny that I thought
+* The work you do loads the next time you pop Radiant open
+* You can create variables and save them to the original data set.
+* You can save out any manipulations you do to the data.
+* You can save out any transformations you do to the data
+* You can use RMarkdown with a live viewer on the right panel
+
+Downsides:
+
+* I've only spent 30 minutes with Radiant. I don't think it's going to be a resounding success in the open-source community. I do a lot in RShiny, and it's not built like Superset is. Radiant isn't beautiful. It's a bit clunky. It's not extre
+* Not extremely intuitive, but watching the short tutorial helps you figure it out
+* The plots froze several times when I unfortunately decided to add "Date" as a facet (by mistake). Radiant can be prone to freezing.
+
+
+

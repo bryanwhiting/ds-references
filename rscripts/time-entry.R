@@ -2,6 +2,7 @@
 args <- commandArgs(trailingOnly = TRUE)
 
 # args <- c( "w", "a")
+# args <- c("")
 
 # Format seconds function
 format_seconds <- function(s) {
