@@ -9,7 +9,8 @@
 # g <no-option> should be "today's" view. g -t should summary
 # TODO: add monthly visions.
 # IDEA: consider incorporating daily statements into each g <> call.
-
+# FIXME: Can't have streams or seeds with duplicate names
+# FIXME: Is the left_join duplicating rows? The right has two values for "teaching", unique by date. Since you're merging onto the left, which only has "seed", it will naturally join the two rows.
 
 
 args <- commandArgs(trailingOnly = T)
@@ -298,13 +299,20 @@ if ("-stream" %in% args) {
   df_log_field <- df_log %>% 
     filter(date >= field_day_date) %>%
     rename(seed = finished, harvest_date = date) %>% 
-    mutate(harvested = 1)
+    mutate(harvested = 1) 
+  # Make unique. Prevents multiple seeds from merging. FIXME: don't allow seeds and streams to have the same name. read in the names to confirm before writing to file.
+  df_log_field %<>% 
+    group_by(seed) %>% 
+    summarize(harvest_date = max(harvest_date), harvested = max(harvested))
   
   # Merge log onto seeds, to count "harvested". If harvested is already in the data, remove those columns
   if ("harvested" %in% names(df_seeds)) { df_seeds %<>% select(-harvested) }
   if ("harvest_date" %in% names(df_seeds)){ df_seeds %<>% select(-harvest_date)}
   # Create the harvested file
-  df_seeds <- left_join(df_seeds, df_log_field, by = "seed")
+  df_seeds <- left_join(df_seeds, df_log_field, by = "seed") #%>%
+    # select(-id) %>%
+    # unique()
+    
   
   # OUTPUT 
   df_seeds$harvested[is.na(df_seeds$harvested)] <- 0
